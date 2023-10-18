@@ -1,3 +1,4 @@
+// https://github.com/JostAusSoest/jsDeyeInverter/blob/main/code.groovy
 metadata
 {
   definition(name:'jsDeyeInverter', namespace:'de.schwider', author:'Jost Schwider', description:'Just Simple Deye Inverter Driver')
@@ -5,12 +6,16 @@ metadata
     capability 'Polling'
     capability 'PowerMeter'
     
-    attribute 'installedAt', 'String'
-    attribute 'updatedAt',   'String'
-    attribute 'isPolling',   'Boolean'
-    attribute 'power',       'Number'
-    attribute 'yieldToday',  'Number'
-    attribute 'yieldTotal',  'Number'
+    attribute 'installedAt','String'
+    attribute 'updatedAt',  'String'
+    attribute 'isPolling',  'Boolean'
+    attribute 'power',      'Number'
+    attribute 'yieldToday', 'Number'
+    attribute 'yieldTotal', 'Number'
+    attribute 'maxToday',   'Number'
+    attribute 'maxTotal',   'Number'
+    
+    command 'resetMaxTotal'
   }
   
   preferences
@@ -23,7 +28,7 @@ metadata
                                      description:'<small>Repeat poll every 5 minutes?<br />Necessary for regular power measurement.</small>'
     input 'logReport',   'bool',     title:'Log Report'
     input 'logWarnings', 'bool',     title:'Log Warnings'
-  }
+	}
 }
 
 
@@ -49,6 +54,12 @@ public void parse(def s)
 }
 
 
+public void resetMaximum()
+{
+  sendEvent name:'maxTotal', value:device.currentPower, unit:'W'
+}
+
+
 // capability 'Polling': ====================
 
 
@@ -60,6 +71,7 @@ public void poll()
   {
     sendEvent name:'updatedAt', value:ts
     sendEvent name:'yieldToday', value:0, unit:'kWh'
+    sendEvent name:'maxToday', value:0, unit:'W'
   }
   
   // Aktuellen Status holen:
@@ -73,7 +85,7 @@ public void poll()
   }
   
   // Aktuelle Werte auslesen:
-  Float newPower = s ? value(s, 'webdata_now_p') : 0.0
+  Integer newPower = s ? value(s, 'webdata_now_p') : 0
   if (newPower != device.currentPower)
   {
     sendEvent name:'updatedAt', value:ts
@@ -82,6 +94,10 @@ public void poll()
     {
       sendEvent name:'yieldToday', value:value(s, 'webdata_today_e'), unit:'kWh'
       sendEvent name:'yieldTotal', value:value(s, 'webdata_total_e'), unit:'kWh'
+      if (newPower > device.currentMaxToday)
+        sendEvent name:'maxToday', value:newPower, unit:'W'
+      if (newPower > device.currentMaxTotal)
+        sendEvent name:'maxTotal', value:newPower, unit:'W'
     }
   }
 }
